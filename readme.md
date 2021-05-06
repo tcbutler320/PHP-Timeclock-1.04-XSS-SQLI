@@ -18,14 +18,13 @@ Parameter: login_userid (POST)
 ``` 
 
 
-## Reflected Cross-Site Scripting via GET request 
+## Reflected Cross-Site Scripting Vulnerabilities via GET request 
 
 Several resources are is vulnerable to reflective cross-site scripting via appending any payload to the end of the URL GET request. The payload should be preceeded with a single quote and greater than symbol. Vulnerable resources include, 
 
 + /login.php
 + /timeclock.php
 + /reports/audit.php
-+ /reports/timerpt.php
 + /reports/timerpt.php
 
 ```
@@ -38,7 +37,7 @@ curl -i -s -k -X $'GET' \
 
 ![](img/reflective-xss.png)  
 
-## Reflective Cross-Site Scripting via multiple post parameters in /reports/total_hours.php, reports/timerpt.php, and reports/audit.php
+## Multiple Cross-Site Scripting via post parameters in /reports/total_hours.php, reports/timerpt.php, and reports/audit.php
 
 
 The resources located at /reports/total_hours.php, reports/timerpt.php, and reports/audit.php are vulnerable to cross site scripting in the from_date,to_date post parameters.
