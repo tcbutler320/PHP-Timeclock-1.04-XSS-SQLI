@@ -16,3 +16,15 @@ nohup: ignoring input
 210506  4:21:01  InnoDB: Started; log sequence number 0 43634
 /usr/local/mysql/libexec/mysqld: ready for connections.
 Version: '4.1.22'  socket: '/tmp/mysql.sock'  port: 3306  Source distribution
+210506 21:26:49  mysqld started
+nohup: ignoring input
+210506 21:26:49 [Warning] Setting lower_case_table_names=2 because file system for /usr/local/mysql/var/ is case insensitive
+210506 21:26:49  InnoDB: Started; log sequence number 0 43634
+/usr/local/mysql/libexec/mysqld: ready for connections.
+Version: '4.1.22'  socket: '/tmp/mysql.sock'  port: 3306  Source distribution
+210506 21:28:45  mysqld started
+nohup: ignoring input
+210506 21:28:45 [Warning] Setting lower_case_table_names=2 because file system for /usr/local/mysql/var/ is case insensitive
+210506 21:28:45  InnoDB: Started; log sequence number 0 43634
+/usr/local/mysql/libexec/mysqld: ready for connections.
+Version: '4.1.22'  socket: '/tmp/mysql.sock'  port: 3306  Source distribution
