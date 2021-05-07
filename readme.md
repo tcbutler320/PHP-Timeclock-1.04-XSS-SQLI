@@ -14,7 +14,7 @@
 - [PHP Timelock 1.04 SQLi and XSS Vulnerabilities](#php-timelock-104-sqli-and-xss-vulnerabilities)
   - [Indentified Vulnerabilities](#indentified-vulnerabilities)
     - [PHP Timeclock 1.04 Time and Boolean Based Blind SQL Injection](#php-timeclock-104-time-and-boolean-based-blind-sql-injection)
-      - [PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)](#php-timeclock-104-multiple-unauthenticated-reflected-cross-site-scripting-xss)
+    - [PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)](#php-timeclock-104-multiple-unauthenticated-reflected-cross-site-scripting-xss)
   - [Local Testing](#local-testing)
   - [Remote Testing](#remote-testing)
 
@@ -60,7 +60,7 @@ Parameter: login_userid (POST)
 
 ```  
 
-#### PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)
+### PHP Timeclock 1.04 Multiple Unauthenticated Reflected Cross Site Scripting (XSS)
 
 
 Description: PHP Timeclock version 1.04 (and prior) suffers from multiple Unauthenticated Reflected Cross-Site Scripting Vulnerabilities. Arbitrary javascript can be injected into the application by appending a termination /'> and payload directly to the end of the GET request URL. The vulnerable paths include (1) /login.php  (2) /timeclock.php (3) /reports/audit.php and (4) /reports/timerpt.php. 
