@@ -1,6 +1,6 @@
 # PHP Timelock 1.04 SQLi and XSS Vulnerabilities 
 
-![](img/reflective-xss.png)
+![](res/reflective-xss.png)
 
 
 > This repository contains details on several vulnerabilities I found in the [PHP TimeClock](http://timeclock.sourceforge.net/) application. PHP Timeclock is a legacy php application created in 2006 and maintained up until 2013. Unfortunately, several production sites still use the application, and can be identified with basic OSINT. The vulnerabilities include, 
@@ -22,7 +22,7 @@
 
 ### PHP Timeclock 1.04 Time and Boolean Based Blind SQL Injection  
 
-![](img/sqli.png)
+![](res/sqli.png)
 
 
 Description: PHP Timeclock is vulnerable to both Boolean and Time Based SQL Injection on login.php via the login_userid parameter. This PoC shows how SQLmap can be used to exploit this vulnerability to dump database contents
@@ -70,7 +70,7 @@ Payload: /'><svg/onload=alert`xss`>
 
 Example: http://target/login.php/'%3E%3Csvg/onload=alert%60xss%60%3E
 
-![](img/reflective-xss.png)
+![](res/reflective-xss.png)
 
 Steps to reproduce:
   1. Navigate to a site that uses PHP Timeclock 1.04 or earlier
